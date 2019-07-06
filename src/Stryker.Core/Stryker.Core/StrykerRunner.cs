@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Build.Locator;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Stryker.Core.Exceptions;
@@ -42,6 +43,8 @@ namespace Stryker.Core
         /// <param name="options">The user options</param>
         public StrykerRunResult RunMutationTest(StrykerOptions options)
         {
+            MSBuildLocator.RegisterDefaults();
+
             // start stopwatch
             var stopwatch = new Stopwatch();
             stopwatch.Start();

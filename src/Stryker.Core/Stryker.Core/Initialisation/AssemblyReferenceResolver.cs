@@ -1,13 +1,7 @@
-﻿using Buildalyzer;
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Logging;
-using Stryker.Core.Exceptions;
 using Stryker.Core.Logging;
-using Stryker.Core.Testing;
-using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 namespace Stryker.Core.Initialisation
 {

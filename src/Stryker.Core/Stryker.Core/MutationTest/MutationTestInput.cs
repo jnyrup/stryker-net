@@ -1,5 +1,4 @@
 ﻿using Microsoft.CodeAnalysis;
-using Stryker.Core.Initialisation;
 using Stryker.Core.TestRunners;
 using System.Collections.Generic;
 
@@ -13,7 +12,7 @@ namespace Stryker.Core.MutationTest
         /// <summary>
         /// Contains all information about the project the framework was called on
         /// </summary>
-        public ProjectInfo ProjectInfo { get; set; }
+        public Initialisation.ProjectInfo ProjectInfo { get; set; }
 
         /// <summary>
         /// The testrunner that will be used for the mutation test run

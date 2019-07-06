@@ -1,22 +1,21 @@
-﻿using Buildalyzer;
-using Microsoft.Build.Exceptions;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.MSBuild;
 using Microsoft.Extensions.Logging;
 using Stryker.Core.Exceptions;
 using Stryker.Core.Logging;
 using Stryker.Core.Testing;
-using Stryker.Core.ToolHelpers;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace Stryker.Core.Initialisation
 {
     public interface IProjectFileReader
     {
-        ProjectAnalyzerResult AnalyzeProject(string projectFilepath, string solutionFilePath);
+        Task<ProjectAnalyzerResult> AnalyzeProject(string projectFilepath, string solutionFilePath);
         string DetermineProjectUnderTest(IEnumerable<string> projectReferences, string projectUnderTestNameFilter);
         IEnumerable<string> FindSharedProjects(XDocument document);
     }
@@ -35,43 +34,71 @@ namespace Stryker.Core.Initialisation
             _logger = ApplicationLogging.LoggerFactory.CreateLogger<ProjectFileReader>();
         }
 
-        public ProjectAnalyzerResult AnalyzeProject(string projectFilePath, string solutionFilePath)
+        public async Task<ProjectAnalyzerResult> AnalyzeProject(string projectFilePath, string solutionFilePath)
         {
-            AnalyzerManager manager;
-            if (solutionFilePath == null)
+
+            using (var workspace = MSBuildWorkspace.Create())
             {
-                manager = new AnalyzerManager();
-            }
-            else
-            {
-                _logger.LogDebug("Analyzing solution file {0}", solutionFilePath);
-                try
+                workspace.LoadMetadataForReferencedProjects = true;
+                workspace.SkipUnrecognizedProjects = false;
+                workspace.AssociateFileExtensionWithLanguage("shproj", "C#");
+                Solution solution;
+                Project project;
+                if (!(solutionFilePath is null))
                 {
-                    manager = new AnalyzerManager(solutionFilePath);
-                } catch (InvalidProjectFileException)
-                {
-                    throw new StrykerInputException($"Incorrect solution path \"{solutionFilePath}\". Solution file not found. Please review your solution path setting.");
+                    solution = await workspace.OpenSolutionAsync(solutionFilePath);
+                    project = solution.Projects.Single(p => p.FilePath == projectFilePath);
                 }
+                else
+                {
+                    project = await workspace.OpenProjectAsync(projectFilePath);
+                }
+
+                var compilation = await project.GetCompilationAsync();
+
+                var x = compilation.GetDiagnostics();
+
+                var haha = false;
+
             }
 
-            _logger.LogDebug("Analyzing project file {0}", projectFilePath);
-            var analyzerResult = manager.GetProject(projectFilePath).Build().First();
-            if (!analyzerResult.Succeeded)
-            {
-                if (!analyzerResult.TargetFramework.Contains("netcoreapp"))
-                {
-                    // buildalyzer failed to find restored packages, retry after nuget restore
-                    _logger.LogDebug("Project analyzer result not successful, restoring packages");
-                    _nugetRestoreProcess.RestorePackages(solutionFilePath);
-                    analyzerResult = manager.GetProject(projectFilePath).Build().First();
-                } else
-                {
-                    // buildalyzer failed, but seems to work anyway.
-                    _logger.LogWarning("Project analyzer result not successful");
-                }
-            }
+            //AnalyzerManager manager;
+            //if (solutionFilePath == null)
+            //{
+            //    manager = new AnalyzerManager();
+            //}
+            //else
+            //{
+            //    _logger.LogDebug("Analyzing solution file {0}", solutionFilePath);
+            //    try
+            //    {
+            //        manager = new AnalyzerManager(solutionFilePath);
+            //    }
+            //    catch (InvalidProjectFileException)
+            //    {
+            //        throw new StrykerInputException($"Incorrect solution path \"{solutionFilePath}\". Solution file not found. Please review your solution path setting.");
+            //    }
+            //}
 
-            return new ProjectAnalyzerResult(_logger, analyzerResult);
+            //_logger.LogDebug("Analyzing project file {0}", projectFilePath);
+            //var analyzerResult = manager.GetProject(projectFilePath).Build().First();
+            //if (!analyzerResult.Succeeded)
+            //{
+            //    if (!analyzerResult.TargetFramework.Contains("netcoreapp"))
+            //    {
+            //        // buildalyzer failed to find restored packages, retry after nuget restore
+            //        _logger.LogDebug("Project analyzer result not successful, restoring packages");
+            //        _nugetRestoreProcess.RestorePackages(solutionFilePath);
+            //        analyzerResult = manager.GetProject(projectFilePath).Build().First();
+            //    }
+            //    else
+            //    {
+            //        // buildalyzer failed, but seems to work anyway.
+            //        _logger.LogWarning("Project analyzer result not successful");
+            //    }
+            //}
+
+            return new ProjectAnalyzerResult(_logger, null);
         }
 
         public IEnumerable<string> FindSharedProjects(XDocument document)
